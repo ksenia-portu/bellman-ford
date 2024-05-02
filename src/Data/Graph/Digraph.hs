@@ -26,7 +26,7 @@ module Data.Graph.Digraph
 , insertEdge
 , removeEdge
 , vertexCount
-, edgeCount
+, edgeCount, edgeCountMulti
 , vertices
 , vertexLabels
 , veticesAndLabels
@@ -459,10 +459,29 @@ vertexCount (Digraph vc _ _ _) = return $ fromIntegral vc
 edgeCount
     :: Digraph s v meta
     -> ST s Word
-edgeCount dg@(Digraph _ vertexArray _ _) = do
+edgeCount =
+    edgeCountGeneric HT.size
+
+-- | Count the number of edges in the graph, with a single 'NE.NonEmpty'
+--   edge counting as the /length/ of the non-empty list.
+--
+--   Useful for graphs created with 'fromEdgesMulti'.
+edgeCountMulti
+    :: Digraph s v (NE.NonEmpty meta)
+    -> ST s Word
+edgeCountMulti = do
+    edgeCountGeneric $ \ht -> do
+        idxEdgeList <- valueSet ht
+        pure $ sum $ map (NE.length . eMeta) idxEdgeList
+
+edgeCountGeneric
+    :: (HT.HashTable s VertexId (IdxEdge v meta) -> ST s Int)
+    -> Digraph s v meta
+    -> ST s Word
+edgeCountGeneric countM dg@(Digraph _ vertexArray _ _) = do
     vertexIdList <- vertices dg
     outEdgeMapList <- mapM (Arr.readArray vertexArray) vertexIdList
-    countList <- mapM HT.size outEdgeMapList
+    countList <- mapM countM outEdgeMapList
     return $ fromIntegral $ sum countList
 
 -- | All the vertices in the graph
