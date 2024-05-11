@@ -104,6 +104,7 @@ test-suite bellman-ford-test
     , tasty-quickcheck
     , tasty-smallcheck
     , tasty-hspec
+    , mtl
     , hspec
     , transformers
     , text

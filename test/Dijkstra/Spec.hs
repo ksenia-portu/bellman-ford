@@ -15,6 +15,7 @@ import qualified Data.Graph.Digraph                 as Lib
 import qualified Data.Graph.BellmanFord.Double      as BellmanFord
 import qualified Data.Graph.Dijkstra                as Dijkstra
 
+import qualified Control.Monad.Reader               as R
 import qualified Control.Monad.ST                   as ST
 import qualified Test.Hspec.SmallCheck              ()
 import           Test.Hspec.Expectations.Pretty
@@ -31,14 +32,35 @@ spec = Tasty.testGroup "Dijkstra" . (: []) $
     Tasty.testGroup "same result as BellmanFord" $
         [ Tasty.testGroup "all paths from source" $
             mkTests
-                Dijkstra.dijkstra
+                dijkstraStr
                 (pathTo . snd)
         , Tasty.testGroup "only source to target" $
             mkTests
                 (const $ pure ())
-                (\srcDst -> Dijkstra.dijkstraSourceSink srcDst >> pathTo (snd srcDst))
+                (\srcDst -> dijkstraSourceSinkStr srcDst >> pathTo (snd srcDst))
         ]
     where
+        dijkstraStr
+            :: (Show meta, Eq meta)
+            => String
+            -> Dijkstra.Dijkstra s String meta ()
+        dijkstraStr str =
+            withVid str Dijkstra.dijkstra
+
+        dijkstraSourceSinkStr
+            :: (Show meta, Eq meta)
+            => (String, String)
+            -> Dijkstra.Dijkstra s String meta ()
+        dijkstraSourceSinkStr (str1, str2) = do
+            withVid str1 $ \vid1 ->
+                withVid str2 $ \vid2 ->
+                    Dijkstra.dijkstraSourceSink (vid1, vid2)
+
+        withVid str f = do
+            g <- Dijkstra.getGraph
+            mVid <- R.lift $ Lib.lookupVertex g str
+            f $ fromMaybe (error $ "no such vertex ID: " <> show str) mVid
+
         mkTests
             :: ( v ~ String
                , meta ~ Double
