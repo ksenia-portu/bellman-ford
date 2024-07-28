@@ -35,6 +35,10 @@ import qualified Control.Exception as Ex
 import qualified System.IO.Unsafe as Unsafe
 import Data.List (intercalate)
 
+
+instance MonadFail (ST s) where
+  fail = error $ "IndexMinPQ Failed"
+
 -- | Indexed min priority queue.
 --
 -- See https://algs4.cs.princeton.edu/44sp/IndexMinPQ.java.html.
